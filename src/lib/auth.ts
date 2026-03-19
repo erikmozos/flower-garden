@@ -29,6 +29,52 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     return data as Profile | null
 }
 
+export async function createAnonymousProfile(username: string): Promise<Profile | null> {
+    // Create a unique email for anonymous user
+    const uniqueId = crypto.randomUUID()
+    const anonymousEmail = `anon-${uniqueId}@flowers.local`
+    const anonymousPassword = crypto.randomUUID()
+    
+    try {
+        // First, create anonymous user in auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: anonymousEmail,
+            password: anonymousPassword,
+            options: {
+                data: {
+                    username: username.trim(),
+                    is_anonymous: true
+                }
+            }
+        })
+
+        if (authError || !authData.user) {
+            console.error('Error creating auth user:', authError?.message)
+            throw new Error(`No se pudo crear el usuario: ${authError?.message}`)
+        }
+
+        // Now create the profile with the actual user ID from auth
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+                id: authData.user.id,
+                username: username.trim()
+            })
+            .select()
+            .single()
+
+        if (profileError) {
+            console.error('Error creating profile:', profileError.message)
+            throw new Error(`No se pudo crear el perfil: ${profileError.message}`)
+        }
+
+        return profileData as Profile | null
+    } catch (err) {
+        console.error('Error in createAnonymousProfile:', err instanceof Error ? err.message : String(err))
+        throw err
+    }
+}
+
 export async function signUp(email: string, password: string, username?: string) {
     const finalUsername = username && username.trim() !== '' ? username : email.split('@')[0]
 

@@ -71,7 +71,7 @@ function randomItem<T>(items: T[]) {
     return items[Math.floor(Math.random() * items.length)]
 }
 
-export async function createFlowerForUser(userId: string): Promise<Flower | null> {
+function generateFlowerData(userId: string) {
     const seed = crypto.randomUUID()
 
     const petalShapes = ['round', 'pointed', 'oval', 'heart']
@@ -83,7 +83,7 @@ export async function createFlowerForUser(userId: string): Promise<Flower | null
     ]
     const darkColors = ['#1a1a2e', '#16213e', '#0f3460', '#e94560']
 
-    const newFlower = {
+    return {
         user_id: userId,
         seed,
         petal_count: randomInt(4, 12),
@@ -96,6 +96,10 @@ export async function createFlowerForUser(userId: string): Promise<Flower | null
         rotation: randomInt(0, 360),
         background_tone: randomItem(backgroundTones),
     }
+}
+
+export async function createFlowerForUser(userId: string): Promise<Flower | null> {
+    const newFlower = generateFlowerData(userId)
 
     // Insert to DB
     const { data, error } = await supabase
@@ -114,3 +118,22 @@ export async function createFlowerForUser(userId: string): Promise<Flower | null
 
     return data as Flower
 }
+
+export async function createAnonymousFlower(userId: string): Promise<Flower | null> {
+    const newFlower = generateFlowerData(userId)
+
+    // Insert to DB (no unique constraint for anonymous users)
+    const { data, error } = await supabase
+        .from('flowers')
+        .insert([newFlower] as any)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error creating anonymous flower:', error.message)
+        throw error
+    }
+
+    return data as Flower
+}
+

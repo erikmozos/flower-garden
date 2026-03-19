@@ -38,6 +38,15 @@ body {
   }
 }
 
+@keyframes flower-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(236, 72, 153, 0.8)) drop-shadow(0 0 40px rgba(236, 72, 153, 0.5)) drop-shadow(0 0 60px rgba(236, 72, 153, 0.3)) brightness(1.1);
+  }
+  50% {
+    filter: drop-shadow(0 0 50px rgba(236, 72, 153, 1)) drop-shadow(0 0 80px rgba(236, 72, 153, 0.8)) drop-shadow(0 0 120px rgba(236, 72, 153, 0.5)) brightness(1.5);
+  }
+}
+
 @layer utilities {
   .animate-marquee {
     animation: marquee 8s linear infinite;
@@ -45,5 +54,9 @@ body {
   
   .pause-animation {
     animation-play-state: paused;
+  }
+
+  .animate-flower-glow {
+    animation: flower-glow 1.5s ease-in-out infinite;
   }
 }
