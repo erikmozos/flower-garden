@@ -56,10 +56,10 @@ export async function createAnonymousProfile(username: string): Promise<Profile 
         // Now create the profile with the actual user ID from auth
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .insert({
+            .insert([{
                 id: authData.user.id,
                 username: username.trim()
-            })
+            }] as any)
             .select()
             .single()
 
