@@ -29,13 +29,34 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     return data as Profile | null
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string, username?: string) {
+    const finalUsername = username && username.trim() !== '' ? username : email.split('@')[0]
+
     const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+            data: {
+                username: finalUsername,
+            }
+        }
     })
 
     if (error) throw error
+
+    if (data.user) {
+        const { error: profileError } = await supabase.from('profiles').insert({
+            id: data.user.id,
+            username: finalUsername
+        } as any)
+
+        if (profileError) {
+            console.error('Error creating user profile:', profileError.message)
+            // Lanza el error para que AuthForm lo atrape y te lo muestre en pantalla
+            throw new Error(`Error en Supabase (RLS o base de datos): ${profileError.message}`)
+        }
+    }
+
     return data
 }
 

@@ -18,6 +18,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     const router = useRouter()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [username, setUsername] = useState("")
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
 
@@ -34,7 +35,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 router.push("/dashboard")
                 router.refresh()
             } else {
-                await signUp(email, password)
+                await signUp(email, password, username)
                 router.push("/dashboard")
                 router.refresh()
             }
@@ -57,6 +58,20 @@ export function AuthForm({ mode }: AuthFormProps) {
             </CardHeader>
             <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
+                    {!isLogin && (
+                        <div className="space-y-2">
+                            <Label htmlFor="username">Nombre o Apodo</Label>
+                            <Input
+                                id="username"
+                                type="text"
+                                placeholder="Tu nombre..."
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                required={!isLogin}
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input

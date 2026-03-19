@@ -10,7 +10,6 @@ export async function getFlowerByUserId(userId: string): Promise<Flower | null> 
 
     if (error) {
         if (error.code === 'PGRST116') {
-            // Postgres single row not found error
             return null
         }
         console.error('Error fetching flower:', error.message)
@@ -18,6 +17,45 @@ export async function getFlowerByUserId(userId: string): Promise<Flower | null> 
     }
 
     return data as Flower
+}
+
+export async function getAllFlowersWithProfiles(limit = 100) {
+    const { data: flowers, error } = await supabase
+        .from('flowers')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    if (error) {
+        console.error('Error fetching all flowers:', error.message)
+        return []
+    }
+
+    if (!flowers || flowers.length === 0) return []
+
+    const typedFlowers = flowers as any[]
+    const userIds = Array.from(new Set(typedFlowers.map(f => f.user_id)))
+
+    const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', userIds)
+
+    if (profilesError) {
+        console.error('Error fetching profiles:', profilesError.message)
+    }
+
+    const profilesMap = new Map<string, string | null>()
+    if (profiles) {
+        ; (profiles as any[]).forEach(p => {
+            profilesMap.set(p.id, p.username)
+        })
+    }
+
+    return typedFlowers.map(flower => ({
+        ...flower,
+        username: profilesMap.get(flower.user_id) || 'Explorador Anónimo'
+    }))
 }
 
 function randomInt(min: number, max: number) {

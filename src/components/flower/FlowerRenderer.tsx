@@ -4,6 +4,7 @@ import { Flower } from "@/lib/types"
 interface FlowerRendererProps {
     flower: Flower
     className?: string
+    transparentBackground?: boolean
 }
 
 function getPetalPath(shape: string, length: number, width: number) {
@@ -21,11 +22,12 @@ function getPetalPath(shape: string, length: number, width: number) {
     }
 }
 
-export function FlowerRenderer({ flower, className }: FlowerRendererProps) {
+export function FlowerRenderer({ flower, className, transparentBackground }: FlowerRendererProps) {
     if (flower.svg_data) {
         return (
             <div
-                className={className}
+                className={`relative w-full aspect-square flex items-center justify-center overflow-hidden rounded-[2.5rem] ${className}`}
+                style={{ backgroundColor: transparentBackground ? 'transparent' : (flower.background_tone || '#fdfbf7') }}
                 dangerouslySetInnerHTML={{ __html: flower.svg_data }}
             />
         )
@@ -73,7 +75,7 @@ export function FlowerRenderer({ flower, className }: FlowerRendererProps) {
     return (
         <div
             className={`relative w-full aspect-square flex items-center justify-center overflow-hidden rounded-[2.5rem] ${className}`}
-            style={{ backgroundColor: flower.background_tone || '#fdfbf7' }}
+            style={{ backgroundColor: transparentBackground ? 'transparent' : (flower.background_tone || '#fdfbf7') }}
         >
             <svg
                 viewBox={`0 0 ${svgSize} ${svgSize}`}
