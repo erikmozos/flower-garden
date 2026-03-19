@@ -47,20 +47,20 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
 
     return (
-        <Card className="w-full max-w-md mx-auto">
-            <CardHeader className="text-center">
-                <CardTitle>{isLogin ? "Welcome back" : "Create an account"}</CardTitle>
-                <CardDescription>
+        <Card className="w-full">
+            <CardHeader className="text-center px-4 sm:px-6 pt-4 sm:pt-6">
+                <CardTitle className="text-2xl sm:text-3xl">{isLogin ? "Welcome back" : "Create an account"}</CardTitle>
+                <CardDescription className="text-xs sm:text-sm mt-2">
                     {isLogin
                         ? "Enter your credentials to access your garden"
                         : "Sign up to discover your unique digital flower"}
                 </CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 px-4 sm:px-6">
                     {!isLogin && (
                         <div className="space-y-2">
-                            <Label htmlFor="username">Nombre o Apodo</Label>
+                            <Label htmlFor="username" className="text-xs sm:text-sm">Nombre o Apodo</Label>
                             <Input
                                 id="username"
                                 type="text"
@@ -69,11 +69,12 @@ export function AuthForm({ mode }: AuthFormProps) {
                                 onChange={(e) => setUsername(e.target.value)}
                                 required={!isLogin}
                                 disabled={loading}
+                                className="text-sm"
                             />
                         </div>
                     )}
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
                         <Input
                             id="email"
                             type="email"
@@ -82,10 +83,11 @@ export function AuthForm({ mode }: AuthFormProps) {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             disabled={loading}
+                            className="text-sm"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password" className="text-xs sm:text-sm">Password</Label>
                         <Input
                             id="password"
                             type="password"
@@ -93,20 +95,21 @@ export function AuthForm({ mode }: AuthFormProps) {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             disabled={loading}
+                            className="text-sm"
                         />
                     </div>
-                    {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+                    {error && <p className="text-xs sm:text-sm text-red-500 font-medium">{error}</p>}
                 </CardContent>
-                <CardFooter className="flex flex-col space-y-4">
-                    <Button type="submit" className="w-full" disabled={loading} size="lg">
+                <CardFooter className="flex flex-col space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
+                    <Button type="submit" className="w-full text-sm sm:text-base" disabled={loading} size="lg">
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isLogin ? "Sign In" : "Sign Up"}
                     </Button>
-                    <div className="text-sm text-center text-zinc-500">
+                    <div className="text-xs sm:text-sm text-center text-zinc-500">
                         {isLogin ? "Don't have an account? " : "Already have an account? "}
                         <Button
                             variant="link"
-                            className="p-0 h-auto font-semibold text-zinc-900"
+                            className="p-0 h-auto font-semibold text-zinc-900 text-xs sm:text-sm"
                             onClick={(e) => {
                                 e.preventDefault()
                                 router.push(isLogin ? "/register" : "/login")

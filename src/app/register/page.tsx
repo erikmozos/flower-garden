@@ -2,7 +2,7 @@ import { AuthForm } from "@/components/auth/AuthForm"
 
 export default function RegisterPage() {
     return (
-        <div className="w-full max-w-sm animate-in fade-in zoom-in-95 duration-500">
+        <div className="w-full max-w-xl sm:max-w-md px-4 sm:px-0 animate-in fade-in zoom-in-95 duration-500">
             <AuthForm mode="register" />
         </div>
     )
