@@ -1,10 +1,22 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react"
 import { FlowerRenderer } from "@/components/flower/FlowerRenderer"
 import { Flower } from "@/lib/types"
 import { getVisitorCookie } from "@/lib/cookies"
 import NameInputModal from "@/components/home/NameInputModal"
+import { generateMockGardenFlowers } from "@/lib/mockGardenFlowers"
+import { getPlantedStyle, getStressTestPlantStyle } from "@/lib/gardenLayout"
+
+const STRESS_TEST_DURATION_MS = 20_000
+const STRESS_TEST_COUNT = 100
+
+function showStressTestControl() {
+    return (
+        process.env.NODE_ENV === "development" ||
+        process.env.NEXT_PUBLIC_GARDEN_STRESS_TEST === "1"
+    )
+}
 
 interface InteractiveGardenProps {
     plantedFlowers: (Flower & { username: string | null })[]
@@ -40,29 +52,17 @@ function TooltipText({ text }: { text: string }) {
     )
 }
 
-function getPlantedStyle(index: number, isLogged: boolean) {
-    // Scatter horizontally between 5% and 90%
-    const left = 5 + ((index * 17) % 85)
-    // Scatter vertically along the grass between 2vh and Xvh
-    // If logged in, grass is taller (up to 35vh vs 25vh), so we can scatter them higher
-    const bottomMargin = isLogged ? 30 : 20
-    const bottomOffset = isLogged ? 5 : 2
-    const bottom = bottomOffset + ((index * 11) % bottomMargin)
-
-    return {
-        left: `${left}%`,
-        bottom: `${bottom}vh`,
-        transform: `scale(1)`,
-        zIndex: Math.floor(40 - bottom) // lower bottom = closer = higher zIndex
-    }
-}
-
 export function InteractiveGarden({ plantedFlowers }: InteractiveGardenProps) {
     const [selectedFlowerId, setSelectedFlowerId] = useState<string | null>(null)
     const [showNameModal, setShowNameModal] = useState(false)
     const [visitorId, setVisitorId] = useState<string | null>(null)
     const [isInitialized, setIsInitialized] = useState(false)
     const [isShining, setIsShining] = useState(false)
+    /** Vista previa temporal con 100 flores ficticias (solo desarrollo / flag público) */
+    const [stressPreviewFlowers, setStressPreviewFlowers] = useState<
+        (Flower & { username: string | null })[] | null
+    >(null)
+    const [stressSecondsLeft, setStressSecondsLeft] = useState(0)
 
     React.useEffect(() => {
         // Check if visitor has a cookie
@@ -87,8 +87,48 @@ export function InteractiveGarden({ plantedFlowers }: InteractiveGardenProps) {
         return () => window.removeEventListener('shine-toggled', handleShineToggle as EventListener)
     }, [])
 
+    // Quitar la vista previa de 100 flores a los 20 s
+    React.useEffect(() => {
+        if (!stressPreviewFlowers) return
+        const end = setTimeout(() => {
+            setStressPreviewFlowers(null)
+            setStressSecondsLeft(0)
+        }, STRESS_TEST_DURATION_MS)
+        return () => clearTimeout(end)
+    }, [stressPreviewFlowers])
+
+    // Cuenta atrás visual
+    React.useEffect(() => {
+        if (!stressPreviewFlowers) return
+        setStressSecondsLeft(Math.ceil(STRESS_TEST_DURATION_MS / 1000))
+        const tick = setInterval(() => {
+            setStressSecondsLeft((s) => Math.max(0, s - 1))
+        }, 1000)
+        return () => clearInterval(tick)
+    }, [stressPreviewFlowers])
+
+    const startStressTest = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation()
+        setSelectedFlowerId(null)
+        setStressPreviewFlowers(generateMockGardenFlowers(STRESS_TEST_COUNT))
+    }, [])
+
+    const flowersToShow = useMemo(() => {
+        if (stressPreviewFlowers && stressPreviewFlowers.length > 0) {
+            return stressPreviewFlowers
+        }
+        return plantedFlowers
+    }, [stressPreviewFlowers, plantedFlowers])
+
+    const isStressPreview = Boolean(stressPreviewFlowers?.length)
+
     // No renderizar hasta que se monte en el cliente para evitar hydration mismatch
     const isLogged = isInitialized && !!visitorId
+
+    /** Altura del prado (césped + flores) */
+    const gardenLayerClass = isLogged
+        ? "h-[54vh] sm:h-[56vh] md:h-[58vh]"
+        : "h-[44vh] sm:h-[46vh] md:h-[48vh]"
 
     const handleFlowerClick = (flowerId: string) => {
         setSelectedFlowerId(selectedFlowerId === flowerId ? null : flowerId)
@@ -133,32 +173,67 @@ export function InteractiveGarden({ plantedFlowers }: InteractiveGardenProps) {
                     }`}
             />
 
-            {/* Suelo frontal (Hierba) */}
+            {/* Suelo frontal (Hierba) — franja más alta */}
             <div
                 suppressHydrationWarning
-                className={`absolute bottom-0 w-full bg-green-600 transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] ${isLogged ? "h-[30vh] sm:h-[32vh] md:h-[35vh]" : "h-[20vh] sm:h-[22vh] md:h-[25vh]"
-                    }`}
+                className={`absolute bottom-0 w-full bg-green-600 transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] ${gardenLayerClass}`}
             />
 
-            {/* RENDERIZADO DE VERDADERAS FLORES PLANTADAS */}
-            <div suppressHydrationWarning className={`absolute bottom-0 w-full overflow-visible transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] ${isLogged ? 'h-[30vh] sm:h-[32vh] md:h-[35vh]' : 'h-[20vh] sm:h-[22vh] md:h-[25vh]'}`}>
-                {plantedFlowers.length === 0 ? (
-                    <div className="absolute inset-x-0 bottom-[10vh] flex justify-center opacity-50 text-green-950 font-medium">
-                        El jardín está esperando su primera semilla...
-                    </div>
-                ) : (
-                    plantedFlowers.map((flower, i) => {
-                        const isUserFlower = isLogged && flower.user_id === visitorId
+            {/* Banner vista previa 100 flores (test) */}
+            {isStressPreview && (
+                <div
+                    className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-amber-100/95 border border-amber-300 text-amber-950 text-xs sm:text-sm font-semibold shadow-lg pointer-events-none"
+                    role="status"
+                >
+                    Vista previa: {STRESS_TEST_COUNT} flores (demo) — quedan {stressSecondsLeft}s
+                </div>
+            )}
+
+            {/* Control test (solo dev o NEXT_PUBLIC_GARDEN_STRESS_TEST=1) */}
+            {showStressTestControl() && (
+                <button
+                    type="button"
+                    onClick={startStressTest}
+                    disabled={isStressPreview}
+                    className="absolute bottom-4 left-4 z-[60] text-xs sm:text-sm px-3 py-2 rounded-xl bg-white/90 border border-green-200 text-green-900 font-medium shadow-md hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {isStressPreview ? "Demo activa…" : `Probar ${STRESS_TEST_COUNT} flores (20s)`}
+                </button>
+            )}
+
+            {/* Capa de flores: mismo alto que la hierba, ancho completo */}
+            <div
+                suppressHydrationWarning
+                className={`absolute bottom-0 left-0 right-0 z-30 overflow-visible transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] ${gardenLayerClass}`}
+            >
+                <div className="relative h-full w-full">
+                    <div
+                        className="pointer-events-none absolute inset-x-0 bottom-0 top-[10%] bg-linear-to-t from-green-700 via-green-600 to-green-600/30"
+                        aria-hidden
+                    />
+
+                    {!isStressPreview && plantedFlowers.length === 0 ? (
+                        <div className="absolute inset-x-8 bottom-[18%] flex justify-center text-center text-sm text-green-950/70">
+                            El jardín está esperando su primera semilla...
+                        </div>
+                    ) : flowersToShow.length === 0 ? null : (
+                        flowersToShow.map((flower, i) => {
+                        const isUserFlower =
+                            !isStressPreview && isLogged && flower.user_id === visitorId
+                        const plantStyle = isStressPreview
+                            ? getStressTestPlantStyle(i, flowersToShow.length)
+                            : getPlantedStyle(i, flowersToShow.length, isLogged)
                         return (
                         <div
                             key={flower.id}
                             suppressHydrationWarning
                             onClick={(e) => {
                                 e.stopPropagation()
+                                if (isStressPreview) return
                                 handleFlowerClick(flower.id)
                             }}
-                            className={`absolute origin-bottom transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] group cursor-pointer ${isLogged ? 'w-24 h-24 sm:w-36 sm:h-36 md:w-40 md:h-40 lg:w-48 lg:h-48' : 'w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32'}`}
-                            style={getPlantedStyle(i, isLogged)}
+                            className={`absolute origin-bottom transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] group ${isStressPreview ? "cursor-default" : "cursor-pointer"} ${isLogged ? 'w-24 h-24 sm:w-36 sm:h-36 md:w-40 md:h-40 lg:w-48 lg:h-48' : 'w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32'}`}
+                            style={plantStyle}
                         >
                             <FlowerRenderer 
                                 flower={flower} 
@@ -167,13 +242,14 @@ export function InteractiveGarden({ plantedFlowers }: InteractiveGardenProps) {
                             />
 
                             {/* Tooltip visible on hover and click/focus for mobile */}
-                            <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-opacity bg-white/90 backdrop-blur-sm text-green-900 text-xs sm:text-sm font-semibold px-4 sm:px-5 rounded-full shadow-lg border border-green-200 pointer-events-none z-50 w-37.5 sm:w-42.5 h-10 sm:h-11 flex items-center justify-center overflow-hidden ${selectedFlowerId === flower.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-opacity bg-white/90 backdrop-blur-sm text-green-900 text-xs sm:text-sm font-semibold px-4 sm:px-5 rounded-full shadow-lg border border-green-200 pointer-events-none z-50 w-37.5 sm:w-42.5 h-10 sm:h-11 flex items-center justify-center overflow-hidden ${isStressPreview ? 'opacity-0' : selectedFlowerId === flower.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                 <TooltipText text={flower.username ? `Flor de ${flower.username}` : 'Explorador Anónimo'} />
                             </div>
                         </div>
                         )
                     })
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Contenido (Textos por encima del jardín central) */}

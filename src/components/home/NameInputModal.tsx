@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createAnonymousProfile } from '@/lib/auth'
 import { createAnonymousFlower } from '@/lib/flowers'
 import { setVisitorCookie } from '@/lib/cookies'
+import { revalidateGarden } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sparkles } from 'lucide-react'
@@ -44,11 +45,9 @@ export default function NameInputModal({ isOpen, onSubmit }: NameInputModalProps
             // Notify parent component
             onSubmit(profile.id)
 
-            // Reload page to show new flower in garden
+            // Invalidar caché para que la flor aparezca de inmediato
+            await revalidateGarden()
             router.refresh()
-            setTimeout(() => {
-                window.location.reload()
-            }, 500)
         } catch (err) {
             setError(
                 err instanceof Error
