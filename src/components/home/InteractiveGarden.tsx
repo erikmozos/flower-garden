@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react"
+import React, { useState, useMemo, useCallback } from "react"
 import { FlowerRenderer } from "@/components/flower/FlowerRenderer"
 import { Flower } from "@/lib/types"
 import { getVisitorCookie } from "@/lib/cookies"
@@ -23,31 +23,9 @@ interface InteractiveGardenProps {
 }
 
 function TooltipText({ text }: { text: string }) {
-    const spanRef = useRef<HTMLSpanElement>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [shouldScroll, setShouldScroll] = useState(false)
-
-    useEffect(() => {
-        const checkOverflow = () => {
-            if (spanRef.current && containerRef.current) {
-                const isOverflowing = spanRef.current.scrollWidth > containerRef.current.clientWidth
-                setShouldScroll(isOverflowing)
-            }
-        }
-
-        checkOverflow()
-        window.addEventListener('resize', checkOverflow)
-        return () => window.removeEventListener('resize', checkOverflow)
-    }, [text])
-
     return (
-        <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden">
-            <span
-                ref={spanRef}
-                className={`whitespace-nowrap ${shouldScroll ? 'animate-marquee' : ''}`}
-            >
-                {text}
-            </span>
+        <div className="w-full px-0.5 flex items-center justify-center">
+            <span className="text-center text-balance leading-snug">{text}</span>
         </div>
     )
 }
@@ -195,20 +173,21 @@ export function InteractiveGarden({ plantedFlowers }: InteractiveGardenProps) {
                     type="button"
                     onClick={startStressTest}
                     disabled={isStressPreview}
-                    className="absolute bottom-4 left-4 z-[60] text-xs sm:text-sm px-3 py-2 rounded-xl bg-white/90 border border-green-200 text-green-900 font-medium shadow-md hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="absolute bottom-6 left-6 z-[70] text-xs sm:text-sm px-4 py-2.5 rounded-xl bg-white border border-green-200 text-green-900 font-medium shadow-lg hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed max-w-[calc(100vw-3rem)] text-left"
                 >
                     {isStressPreview ? "Demo activa…" : `Probar ${STRESS_TEST_COUNT} flores (20s)`}
                 </button>
             )}
 
-            {/* Capa de flores: mismo alto que la hierba, ancho completo */}
+            {/* Capa de flores: padding horizontal para que tooltips no queden cortados al borde */}
             <div
                 suppressHydrationWarning
-                className={`absolute bottom-0 left-0 right-0 z-30 overflow-visible transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] ${gardenLayerClass}`}
+                className={`absolute bottom-0 left-0 right-0 z-30 overflow-visible px-4 sm:px-8 md:px-12 transition-all duration-2000 ease-[cubic-bezier(0.22,1,0.36,1)] ${gardenLayerClass}`}
             >
                 <div className="relative h-full w-full">
+                    {/* Tono uniforme con el césped (sin franja oscura inferior) */}
                     <div
-                        className="pointer-events-none absolute inset-x-0 bottom-0 top-[10%] bg-linear-to-t from-green-700 via-green-600 to-green-600/30"
+                        className="pointer-events-none absolute inset-x-0 bottom-0 top-[10%] bg-linear-to-t from-green-600/25 to-transparent"
                         aria-hidden
                     />
 
@@ -242,7 +221,7 @@ export function InteractiveGarden({ plantedFlowers }: InteractiveGardenProps) {
                             />
 
                             {/* Tooltip visible on hover and click/focus for mobile */}
-                            <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-opacity bg-white/90 backdrop-blur-sm text-green-900 text-xs sm:text-sm font-semibold px-4 sm:px-5 rounded-full shadow-lg border border-green-200 pointer-events-none z-50 w-37.5 sm:w-42.5 h-10 sm:h-11 flex items-center justify-center overflow-hidden ${isStressPreview ? 'opacity-0' : selectedFlowerId === flower.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <div className={`absolute -top-16 left-1/2 z-[55] -translate-x-1/2 transition-opacity bg-white/95 backdrop-blur-sm text-green-900 text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-2xl shadow-lg border border-green-200 pointer-events-none max-w-[min(16rem,calc(100vw-2.5rem))] w-max min-w-0 flex items-center justify-center ${isStressPreview ? 'opacity-0' : selectedFlowerId === flower.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                 <TooltipText text={flower.username ? `Flor de ${flower.username}` : 'Explorador Anónimo'} />
                             </div>
                         </div>

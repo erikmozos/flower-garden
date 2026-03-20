@@ -51,7 +51,8 @@ function meadowScatter(
     leftPct += wobble * 0.35
     bottomPct += Math.sin(index * 0.51 + total) * (stress ? 1.5 : 2)
 
-    leftPct = clamp(leftPct, 3, 94)
+    /* Margen para que la pastilla "Flor de …" centrada no quede cortada al borde */
+    leftPct = clamp(leftPct, 11, 89)
     bottomPct = clamp(bottomPct, 6, 90)
 
     // Escala: en demo muchas flores → algo más pequeñas y variadas (menos “petado” visual)
